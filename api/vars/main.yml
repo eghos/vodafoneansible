@@ -1,0 +1,5 @@
+---
+# vars file for api
+
+nvm_version: 0.38.0
+node_version: 16
