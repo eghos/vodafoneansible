@@ -22,6 +22,14 @@
   become: yes
   become_user: root
 
+- name: Enable nginx
+  shell: systemctl enable nginx
+  sudo: yes
+
+- name: Start nginx
+  shell: systemctl start nginx
+  sudo: yes
+
 - name: Copy proxy config file to node
   ansible.builtin.copy:
     src: "{{ role_path }}/files/vodafone.conf"
@@ -72,7 +80,7 @@
   register: git_finished
 
 - name: Running NPM install
-  npm: path={{homeDir}}/{{appDir}}
+  npm: path={{rootDir}}/{{appDir}}
   register: npm_finished
   when: git_finished.changed
 
