@@ -2,11 +2,11 @@
 
 - name: update instance
   shell: sudo yum update -y
-  sudo: yes
+  # sudo: yes
 
 - name: install epel repository
   shell: amazon-linux-extras install epel -y
-  sudo: yes
+  # sudo: yes
 
 - name: "1. Uninstall HTTPD/Apache"
   tags: uninstall_apache
@@ -17,36 +17,43 @@
 
 - name: Install nginx
   yum: name=nginx state=latest update_cache=yes
-  notify:
-    - restart nginx
   become: yes
   become_user: root
 
 - name: Enable nginx
   shell: systemctl enable nginx
-  sudo: yes
+  # sudo: yes
 
 - name: Start nginx
   shell: systemctl start nginx
-  sudo: yes
+  # sudo: yes
+
+# - name: "Copying vodafoneapi.conf to  {{proxy_dir}} in the remote host"
+#   shell: cp /Users/aeghobor/inventory/api/files/vodafoneapi.conf "{{proxy_dir}}"
 
 - name: Copy proxy config file to node
   ansible.builtin.copy:
-    src: "{{ role_path }}/files/vodafone.conf"
+    # src: "{{ role_path }}/files/vodafone.conf"
+    src: ~/inventory/api/files/vodafoneapi.conf
     dest: "{{proxy_dir}}"
     owner: root
     group: root
     mode: '0644'
+    follow: yes
+    notify:
+    - restart nginx
 
 - name: Copy nginx config file to node
-  ansible.builtin.copy:
-    src: "{{ role_path }}/files/nginx.conf"
+  copy:
+    # src: "{{ role_path }}/files/nginx.conf"
+    src: ~/inventory/api/files/nginx.conf
     dest: "{{conf_dir}}"
     owner: root
     group: root
     mode: '0644'
     follow: yes
-
+    notify:
+    - restart nginx
 
 # - name: Installs Nginx web server
 #   yum: pkg=nginx state=installed update_cache=true
@@ -62,7 +69,7 @@
 
 - name: install node.js
   shell: yum install nodejs -y
-  sudo: yes
+  # sudo: yes
 
 # - name: Install pm2
 #   npm: name=pm2 global=yes
@@ -75,7 +82,7 @@
   #   copy: src={{privateKey}} dest={{homeDir}} mode=0600
 
 - name: Git Clone Repo
-  git: repo=https://github.com/{{account}}/{{repo}}.git dest={{homeDir}}/{{appDir}} update=yes force=yes 
+  git: repo=https://github.com/{{account}}/{{repo}}.git dest={{rootDir}}/{{appDir}} update=yes force=yes 
     # accept_hostkey=yes key_file={{homeDir}}/id_rsa
   register: git_finished
 
@@ -84,14 +91,26 @@
   register: npm_finished
   when: git_finished.changed
 
-- name: Start Server 
-  command: npm start
-  args:
-    chdir: "{{rootDir}}/{{appDir}}"
-  async: 42
-  poll: 0
-  become: yes
-  become_user: root
+- name: Install forever to run app
+  npm: name=forever global=yes state=present
+
+- name: Check list of apps running
+  command: forever list
+  register: forever_list
+  changed_when: false
+
+- name: Start  app
+  command: forever start "{{rootDir}}/{{appDir}}/server.js"
+  when: "forever_list.stdout.find('{{rootDir}}/{{appDir}}/server.js') == -1"
+
+# - name: Start Server 
+#   command: npm start
+#   args:
+#     chdir: "{{rootDir}}/{{appDir}}"
+#   async: 42
+#   poll: 0
+#   become: yes
+#   become_user: root
 
 
 
