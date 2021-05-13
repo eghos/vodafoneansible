@@ -1,32 +1,101 @@
 ---
-# tasks file for api
 
-- name: Download nvm installer
-  get_url: url="https://raw.githubusercontent.com/creationix/nvm/v{{ nvm_version }}/install.sh" dest=~/nvm-installer.sh mode=u=rwx,g=r,o=x
-  tags: install-nvm
+- name: update instance
+  shell: sudo yum update -y
+  sudo: yes
 
-- name: Execute the nvm-installer.sh
-  command: ~/nvm-installer.sh
+- name: install epel repository
+  shell: amazon-linux-extras install epel -y
+  sudo: yes
+
+- name: "1. Uninstall HTTPD/Apache"
+  tags: uninstall_apache
+  yum:
+    name: httpd
+    autoremove: yes
+    state: absent
+
+- name: Install nginx
+  yum: name=nginx state=latest update_cache=yes
+  notify:
+    - restart nginx
+  become: yes
+  become_user: root
+
+- name: Copy proxy config file to node
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/vodafone.conf"
+    dest: "{{proxy_dir}}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy nginx config file to node
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/nginx.conf"
+    dest: "{{conf_dir}}"
+    owner: root
+    group: root
+    mode: '0644'
+    follow: yes
+
+
+# - name: Installs Nginx web server
+#   yum: pkg=nginx state=installed update_cache=true
+#   notify:
+#     - start nginx
+
+- name: Install Packages
+  yum: name={{ item }} update_cache=yes state=latest
+  with_items:
+    - "@Development tools"
+    - git
+    - curl
+
+- name: install node.js
+  shell: yum install nodejs -y
+  sudo: yes
+
+# - name: Install pm2
+#   npm: name=pm2 global=yes
+#   RUN npm install -g webpack@4.29.3 pm2@4.2.1
+
+- name: Create APP Directory
+  file: path={{rootDir}}/{{appDir}} state=directory
+
+  # - name: Copy Private Key
+  #   copy: src={{privateKey}} dest={{homeDir}} mode=0600
+
+- name: Git Clone Repo
+  git: repo=https://github.com/{{account}}/{{repo}}.git dest={{homeDir}}/{{appDir}} update=yes force=yes 
+    # accept_hostkey=yes key_file={{homeDir}}/id_rsa
+  register: git_finished
+
+- name: Running NPM install
+  npm: path={{homeDir}}/{{appDir}}
+  register: npm_finished
+  when: git_finished.changed
+
+- name: Start Server 
+  command: npm start
   args:
-    creates: ~/.nvm/nvm.sh
-  tags: install-nvm
+    chdir: "{{rootDir}}/{{appDir}}"
+  async: 42
+  poll: 0
+  become: yes
+  become_user: root
 
-- name: Own the nvm script
-  file:
-    path: ~/.nvm/nvm.sh
-    state: touch
-    mode: u=rwx,g=r,o=rwx
-  tags: install-nvm
 
-- name: Activate nvm
-  command: /bin/bash ~/.nvm/nvm.sh
-  args:
-    chdir: "~/"
-  tags: install-nvm
 
-- name: Install node
-  shell: |
-    source ~/.bashrc
-    nvm install "{{ node_version }}"
-    nvm use --delete-prefix "v{{ node_version }}" --silent
-  tags: install-node
+# - name: Stop APP
+#   sudo_user: ec2-user
+#   command: pm2 stop app chdir={{homeDir}}/{{appDir}}/backend
+#   ignore_errors: yes
+
+# - name: Start APP
+#   sudo_user: ec2-user
+#   command: pm2 start server.js --name app chdir={{homeDir}}/{{appDir}}/backend
+#   ignore_errors: yes
+#   when: npm_finished.changed
+
+

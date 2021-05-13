@@ -3,3 +3,11 @@
 
 nvm_version: 0.38.0
 node_version: 16
+vars:
+rootDir: /var/www/
+appDir : app
+repo: vodafoneapi
+account: eghos
+user: ec2-user
+proxy_dir: /etc/nginx/conf.d/
+conf_dir: /etc/nginx/
