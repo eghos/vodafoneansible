@@ -13,10 +13,12 @@ Ansible uses ssh configuration to access the EC2 instances, and in this case the
 Ansible accesses target nodes using ssh, and the playbooks need to be deployed from a control node, and the control node needs to have pre-requisite packages installed. This guide assumes  you have the control node ready. If not, there are several resources available one of which is the link below:
 https://www.tecmint.com/install-and-configure-an-ansible-control-node/
 
-To deploy pull this code to your node, configure ssh either by making it available to the cli by running: ssh-add <path_to_ssh_key>, or adding ssh config to the ansible.cfg as shown below:
+To deploy pull this code to your node, configure ssh either by making it available to the cli by running: `ssh-add <path_to_ssh_key>`, or adding ssh config to the ansible.cfg as shown below:
 
+```
 [ssh_connection]
 ssh_args = -F <path_to_ssh_key>
+```
 
 Note that this can also be defined at inventory group level.
 
@@ -26,7 +28,7 @@ ansible-playbook api.yml -i ec2.py -u ec2-user
 
 Notice that flag -i meaning inventory points to ec2.py file for dynamic inventory. For amazon linux instances, the username to login is ec2-user. You may replace that with the equivalent if you are not using amazon linux instances. You can add 
 
-he api can then be called at : curl -X POST http://<instance_ip_address>/app
+he api can then be called at : `curl -X POST http://<instance_ip_address>/app`
 
 
 ## Usage
