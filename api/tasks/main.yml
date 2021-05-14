@@ -75,14 +75,14 @@
   register: npm_finished
   when: git_finished.changed
 
-# - name: Install forever to run app
-#   npm: name=forever global=yes state=present
+- name: Install forever to run app
+  npm: name=forever global=yes state=present
 
-# - name: Check list of apps running
-#   command: forever list
-#   register: forever_list
-#   changed_when: false
+- name: Check list of apps running
+  command: forever list
+  register: forever_list
+  changed_when: false
 
-# - name: Start  app
-#   command: forever start "{{rootDir}}/{{appDir}}/server.js"
-#   when: "forever_list.stdout.find('{{rootDir}}/{{appDir}}/server.js') == -1"
+- name: Start  app
+  command: forever start "{{rootDir}}/{{appDir}}/server.js"
+  when: "forever_list.stdout.find('{{rootDir}}/{{appDir}}/server.js') == -1"
