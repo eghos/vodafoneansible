@@ -2,11 +2,15 @@
 
 - name: update instance
   shell: sudo yum update -y
+  become: yes
+  become_user: root
 
 - name: install epel repository
   shell: amazon-linux-extras install epel -y
+  become: yes
+  become_user: root
 
-- name: "1. Uninstall HTTPD/Apache"
+- name: Uninstall Apache
   tags: uninstall_apache
   yum:
     name: httpd
@@ -20,9 +24,13 @@
 
 - name: Enable nginx
   shell: systemctl enable nginx
+  become: yes
+  become_user: root
 
 - name: Start nginx
   shell: systemctl start nginx
+  become: yes
+  become_user: root
 
 - name: Copy proxy config file to node
   ansible.builtin.copy:
@@ -32,8 +40,6 @@
     group: root
     mode: '0644'
     follow: yes
-    notify:
-    - restart nginx
 
 - name: Copy nginx config file to node
   copy:
@@ -43,8 +49,9 @@
     group: root
     mode: '0644'
     follow: yes
-    notify:
-    - restart nginx
+
+- name: Start nginx
+  shell: systemctl restart nginx
 
 - name: Install Packages
   yum: name={{ item }} update_cache=yes state=latest
@@ -68,14 +75,14 @@
   register: npm_finished
   when: git_finished.changed
 
-- name: Install forever to run app
-  npm: name=forever global=yes state=present
+# - name: Install forever to run app
+#   npm: name=forever global=yes state=present
 
-- name: Check list of apps running
-  command: forever list
-  register: forever_list
-  changed_when: false
+# - name: Check list of apps running
+#   command: forever list
+#   register: forever_list
+#   changed_when: false
 
-- name: Start  app
-  command: forever start "{{rootDir}}/{{appDir}}/server.js"
-  when: "forever_list.stdout.find('{{rootDir}}/{{appDir}}/server.js') == -1"
+# - name: Start  app
+#   command: forever start "{{rootDir}}/{{appDir}}/server.js"
+#   when: "forever_list.stdout.find('{{rootDir}}/{{appDir}}/server.js') == -1"
